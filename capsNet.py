@@ -6,7 +6,7 @@ E-mail: naturomics.liao@gmail.com
 
 import tensorflow as tf
 
-from libs import conv_layer
+from libs import conv_layer, to_fixed_point
 from config import cfg
 from utils import get_batch_data
 from capsLayer import CapsLayer
@@ -42,7 +42,7 @@ class CapsNet(object):
         tf.logging.info('Seting up the main structure')
 
     def build_arch(self):
-        with tf.variable_scope('Conv1_layer'):
+        with tf.variable_scope('Conv1_layer') as scope:
             # Conv1, [batch_size, 20, 20, 256]
             # conv1 = tf.contrib.layers.conv2d(self.X, num_outputs=256,
             #                                  kernel_size=9, stride=1,
@@ -50,28 +50,30 @@ class CapsNet(object):
             conv1 = conv_layer(self.X, in_channels=self.X.shape[-1].value,
                         num_outputs=256, kernel_size=9, stride=1, padding='VALID')
             assert conv1.get_shape() == [cfg.batch_size, 20, 20, 256]
+            conv1_fixed = to_fixed_point(conv1, scope)
 
         # Primary Capsules layer, return [batch_size, 1152, 8, 1]
-        with tf.variable_scope('PrimaryCaps_layer'):
+        with tf.variable_scope('PrimaryCaps_layer') as scope:
             primaryCaps = CapsLayer(num_outputs=32, vec_len=8,
                                     with_routing=False, layer_type='CONV')
-            caps1 = primaryCaps(conv1, kernel_size=9, stride=2)
+            caps1 = primaryCaps(conv1_fixed, kernel_size=9, stride=2)
             assert caps1.get_shape() == [cfg.batch_size, 1152, 8, 1]
             tf.summary.histogram('caps1', caps1)
 
         # DigitCaps layer, return [batch_size, 10, 16, 1]
-        with tf.variable_scope('DigitCaps_layer'):
+        with tf.variable_scope('DigitCaps_layer') as scope:
             digitCaps = CapsLayer(num_outputs=10, vec_len=16,
                                   with_routing=True, layer_type='FC')
             caps2 = digitCaps(caps1)
             tf.summary.histogram('caps2', caps2)
+            caps2_fixed = to_fixed_point(caps2, scope)
 
         # Decoder structure in Fig. 2
         # 1. Do masking, how:
         with tf.variable_scope('Masking'):
             # a). calc ||v_c||, then do softmax(||v_c||)
             # [batch_size, 10, 16, 1] => [batch_size, 10, 1, 1]
-            self.v_length = tf.sqrt(tf.reduce_sum(tf.square(caps2),
+            self.v_length = tf.sqrt(tf.reduce_sum(tf.square(caps2_fixed),
                                                   axis=2, keep_dims=True) + epsilon)
             self.softmax_v = tf.nn.softmax(self.v_length, dim=1)
             assert self.softmax_v.get_shape() == [cfg.batch_size, 10, 1, 1]
@@ -89,16 +91,16 @@ class CapsNet(object):
                 # as we are 3-dim animal
                 masked_v = []
                 for batch_size in range(cfg.batch_size):
-                    v = caps2[batch_size][self.argmax_idx[batch_size], :]
+                    v = caps2_fixed[batch_size][self.argmax_idx[batch_size], :]
                     masked_v.append(tf.reshape(v, shape=(1, 1, 16, 1)))
 
                 self.masked_v = tf.concat(masked_v, axis=0)
                 assert self.masked_v.get_shape() == [cfg.batch_size, 1, 16, 1]
             # Method 2. masking with true label, default mode
             else:
-                # self.masked_v = tf.matmul(tf.squeeze(caps2), tf.reshape(self.Y, (-1, 10, 1)), transpose_a=True)
-                self.masked_v = tf.multiply(tf.squeeze(caps2), tf.reshape(self.Y, (-1, 10, 1)))
-                self.v_length = tf.sqrt(tf.reduce_sum(tf.square(caps2), axis=2, keep_dims=True) + epsilon)
+                # self.masked_v = tf.matmul(tf.squeeze(caps2_fixed), tf.reshape(self.Y, (-1, 10, 1)), transpose_a=True)
+                self.masked_v = tf.multiply(tf.squeeze(caps2_fixed), tf.reshape(self.Y, (-1, 10, 1)))
+                self.v_length = tf.sqrt(tf.reduce_sum(tf.square(caps2_fixed), axis=2, keep_dims=True) + epsilon)
 
         # 2. Reconstructe the MNIST images with 3 FC layers
         # [batch_size, 1, 16, 1] => [batch_size, 16] => [batch_size, 512]

@@ -7,11 +7,19 @@ E-mail: naturomics.liao@gmail.com
 import numpy as np
 import tensorflow as tf
 
-from libs import conv_layer
+from libs import conv_layer, to_fixed_point
 from config import cfg
 
 
 epsilon = 1e-9
+
+# Defining custom operations
+rf = tf.load_op_library('./custom_ops/reshape_fix.so')
+reshape_fix = rf.reshape_fix
+# Gradient registration for out custom operation
+@ops.RegisterGradient("ReshapeFix")
+def _reshape_fix_grad(op, grad):
+  return rf.reshape_fix_grad(grad, op.inputs[0], op.inputs[1], op.inputs[2])
 
 
 class CapsLayer(object):
