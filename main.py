@@ -101,8 +101,19 @@ def evaluation(model, supervisor, num_label):
         for i in tqdm(range(num_te_batch), total=num_te_batch, ncols=70, leave=False, unit='b'):
             start = i * cfg.batch_size
             end = start + cfg.batch_size
-            acc = sess.run(model.accuracy, {model.X: teX[start:end], model.labels: teY[start:end]})
+
+            if i == 0 and cfg.is_fixed:
+                print('Fixing accuracies before first step')
+                _, acc, summary_str = sess.run([model.update_variables_ops,
+                                                model.accuracy,
+                                                model.train_summary],
+                    {model.X: teX[start:end], model.labels: teY[start:end]})
+                supervisor.summary_writer.add_summary(summary_str, i)
+            else:
+                acc = sess.run(model.accuracy, {model.X: teX[start:end], model.labels: teY[start:end]})
+
             test_acc += acc
+
         test_acc = test_acc / (cfg.batch_size * num_te_batch)
         fd_test_acc.write(str(test_acc))
         fd_test_acc.close()
@@ -114,14 +125,14 @@ def main(_):
     num_label = 10
     model = CapsNet()
     tf.logging.info(' Graph loaded')
-
-    sv = tf.train.Supervisor(graph=model.graph, logdir=cfg.logdir, save_model_secs=0)
-
+    
     if cfg.is_training:
+        sv = tf.train.Supervisor(graph=model.graph, logdir=cfg.logdir, save_model_secs=0)
         tf.logging.info(' Start training...')
         train(model, sv, num_label)
         tf.logging.info('Training done')
     else:
+        sv = tf.train.Supervisor(graph=model.graph, logdir=cfg.logdir_inference, save_model_secs=0)
         evaluation(model, sv, num_label)
 
 if __name__ == "__main__":
