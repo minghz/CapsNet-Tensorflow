@@ -6,10 +6,9 @@ E-mail: naturomics.liao@gmail.com
 
 import numpy as np
 import tensorflow as tf
+import libs
 
-from libs import conv_layer
 from config import cfg
-
 
 epsilon = 1e-9
 
@@ -71,12 +70,13 @@ class CapsLayer(object):
                 # capsules = tf.contrib.layers.conv2d(input, self.num_outputs * self.vec_len,
                 #                                     self.kernel_size, self.stride, padding="VALID",
                 #                                     activation_fn=tf.nn.relu)
-                capsules = conv_layer(input,
+                capsules = libs.conv_layer(input,
                                       input.shape[-1].value,
                                       self.num_outputs * self.vec_len,
                                       self.kernel_size,
                                       self.stride,
                                       padding="VALID")
+
                 # at this point capsules.get_shape() == [128, 6, 6, 256]
                 assert capsules.get_shape() == [cfg.batch_size, 6, 6, 256]
                 # capsules = tf.contrib.layers.conv2d(input, self.num_outputs * self.vec_len,
@@ -88,6 +88,11 @@ class CapsLayer(object):
 
                 # [batch_size, 1152, 8, 1]
                 capsules = squash(capsules)
+
+                if cfg.is_fixed:
+                    capsules = libs.fix_resolution(capsules,
+                            cfg.fixed_fine_range_bits, cfg.fixed_fine_precision_bits)
+
                 assert capsules.get_shape() == [cfg.batch_size, 1152, 8, 1]
                 return(capsules)
 
@@ -143,6 +148,11 @@ def routing(input, b_IJ):
     # u_hat = tf.scan(lambda ac, x: tf.matmul(W, x, transpose_a=True), input, initializer=tf.zeros([1152, 10, 16, 1]))
     # tf.tile, 3 iter, 1080ti, 128 batch size: 6min/epoch
     u_hat = tf.matmul(W, input, transpose_a=True)
+
+    if cfg.is_fixed:
+        u_hat = libs.fix_resolution(u_hat,
+                cfg.fixed_fine_range_bits, cfg.fixed_fine_precision_bits)
+
     tf.summary.histogram('u_hat', u_hat)
     assert u_hat.get_shape() == [cfg.batch_size, 1152, 10, 16, 1]
 
@@ -156,6 +166,9 @@ def routing(input, b_IJ):
             # => [batch_size, 1152, 10, 1, 1]
             tf.summary.histogram('b_IJ', b_IJ)
             c_IJ = tf.nn.softmax(b_IJ, dim=2)
+            if cfg.is_fixed:
+                c_IJ = libs.fix_resolution(c_IJ,
+                        cfg.fixed_fine_range_bits, cfg.fixed_fine_precision_bits)
             tf.summary.histogram('c_IJ', c_IJ)
 
             # At last iteration, use `u_hat` in order to receive gradients from the following graph
@@ -166,6 +179,10 @@ def routing(input, b_IJ):
                 s_J = tf.multiply(c_IJ, u_hat)
                 # then sum in the second dim, resulting in [batch_size, 1, 10, 16, 1]
                 s_J = tf.reduce_sum(s_J, axis=1, keep_dims=True)
+
+                if cfg.is_fixed:
+                    s_J = libs.fix_resolution(s_J,
+                            cfg.fixed_fine_range_bits, cfg.fixed_fine_precision_bits)
                 assert s_J.get_shape() == [cfg.batch_size, 1, 10, 16, 1]
 
                 tf.summary.histogram('s_J', s_J)
@@ -173,15 +190,22 @@ def routing(input, b_IJ):
                 # line 6:
                 # squash using Eq.1,
                 v_J = squash(s_J)
+                if cfg.is_fixed:
+                    v_J = libs.fix_resolution(v_J,
+                            cfg.fixed_fine_range_bits, cfg.fixed_fine_precision_bits)
                 assert v_J.get_shape() == [cfg.batch_size, 1, 10, 16, 1]
             elif r_iter < cfg.iter_routing - 1:  # Inner iterations, do not apply backpropagation
                 s_J = tf.multiply(c_IJ, u_hat_stopped)
                 s_J = tf.reduce_sum(s_J, axis=1, keep_dims=True)
-
+                if cfg.is_fixed:
+                    s_J = libs.fix_resolution(s_J,
+                            cfg.fixed_fine_range_bits, cfg.fixed_fine_precision_bits)
                 tf.summary.histogram('s_J', s_J)
 
                 v_J = squash(s_J)
-
+                if cfg.is_fixed:
+                    v_J = libs.fix_resolution(v_J,
+                            cfg.fixed_fine_range_bits, cfg.fixed_fine_precision_bits)
                 # line 7:
                 # reshape & tile v_j from [batch_size ,1, 10, 16, 1] to [batch_size, 1152, 10, 16, 1]
                 # then matmul in the last tow dim: [16, 1].T x [16, 1] => [1, 1], reduce mean in the
@@ -192,6 +216,9 @@ def routing(input, b_IJ):
 
                 # b_IJ += tf.reduce_sum(u_produce_v, axis=0, keep_dims=True)
                 b_IJ += u_produce_v
+                if cfg.is_fixed:
+                    b_IJ = libs.fix_resolution(b_IJ,
+                            cfg.fixed_fine_range_bits, cfg.fixed_fine_precision_bits)
 
     tf.summary.histogram('v_J', v_J)
     return(v_J)

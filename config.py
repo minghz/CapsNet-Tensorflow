@@ -31,7 +31,7 @@ flags.DEFINE_boolean('is_fixed', True, 'Fix variables to predetermined resolutio
 flags.DEFINE_integer('fixed_rough_range_bits', 6, 'Fixed-point bits for ranges for large distributions')
 flags.DEFINE_integer('fixed_rough_precision_bits', 6, 'Fixed-point bits for precisions for large distributions')
 flags.DEFINE_integer('fixed_fine_range_bits', 1, 'Fixed-point bits for ranges for small distributions')
-flags.DEFINE_integer('fixed_fine_precision_bits', 3, 'Fixed-point bits for precisions for small distributions')
+flags.DEFINE_integer('fixed_fine_precision_bits', 15, 'Fixed-point bits for precisions for small distributions')
 flags.DEFINE_integer('num_threads', 8, 'number of threads of enqueueing exampls')
 flags.DEFINE_string('logdir_inference', 'logdir_inference', 'logs directory for evals')
 flags.DEFINE_string('logdir', 'logdir', 'logs directory')
