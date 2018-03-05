@@ -5,21 +5,13 @@ E-mail: naturomics.liao@gmail.com
 """
 
 import tensorflow as tf
+import libs
 
-from libs import conv_layer
 from config import cfg
 from utils import get_batch_data
 from capsLayer import CapsLayer
 
-
 epsilon = 1e-9
-
-# Defining custom operations
-rf = tf.load_op_library('./custom_ops/fix_resolution.so')
-fix_resolution = rf.fix_resolution
-@tf.RegisterGradient("FixResolutionGrad")
-def _fix_resolution_grad(unused_op, grad):
-  return grad # does nothing
 
 
 class CapsNet(object):
@@ -56,7 +48,7 @@ class CapsNet(object):
         op = []
         for var in variables:
             tf.summary.histogram('before-' + var.name, var)
-            nvar = fix_resolution(var,
+            nvar = libs.fix_resolution(var,
                     cfg.fixed_fine_range_bits, cfg.fixed_fine_precision_bits)
             tf.summary.histogram('after-' + nvar.name, nvar)
             op.append(tf.assign(var, nvar))
@@ -71,7 +63,7 @@ class CapsNet(object):
             # conv1 = tf.contrib.layers.conv2d(self.X, num_outputs=256,
             #                                  kernel_size=9, stride=1,
             #                                  padding='VALID')
-            conv1 = conv_layer(self.X, in_channels=self.X.shape[-1].value,
+            conv1 = libs.conv_layer(self.X, in_channels=self.X.shape[-1].value,
                         num_outputs=256, kernel_size=9, stride=1, padding='VALID')
             assert conv1.get_shape() == [cfg.batch_size, 20, 20, 256]
 

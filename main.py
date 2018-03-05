@@ -110,7 +110,9 @@ def evaluation(model, supervisor, num_label):
                     {model.X: teX[start:end], model.labels: teY[start:end]})
                 supervisor.summary_writer.add_summary(summary_str, i)
             else:
-                acc = sess.run(model.accuracy, {model.X: teX[start:end], model.labels: teY[start:end]})
+                acc, _ = sess.run([model.accuracy,
+                                   model.train_summary],
+                        {model.X: teX[start:end], model.labels: teY[start:end]})
 
             test_acc += acc
 

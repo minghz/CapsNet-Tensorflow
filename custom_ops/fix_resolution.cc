@@ -28,16 +28,16 @@ class FixResolutionOp : public OpKernel {
       auto input = input_tensor.flat<float>();
       auto m = range_bits.flat<int>();
       auto n = precision_bits.flat<int>();
-      std::cout << "m0: " << m(0) << std::endl;
-      std::cout << "n0: " << n(0) << std::endl;
+      //std::cout << "m0: " << m(0) << std::endl;
+      //std::cout << "n0: " << n(0) << std::endl;
      
       float range_min = -1 * pow(2, (m(0) - 1));
       float range_max = pow(2, (m(0) - 1)) - pow(2, -1 * n(0));
       float resolution = pow(2, -1 * n(0));
 
-      std::cout << "range: [" << range_min << ", " << range_max << "]"
-        << " | resolution: " << resolution
-        << std::endl;
+      //std::cout << "range: [" << range_min << ", " << range_max << "]"
+      //  << " | resolution: " << resolution
+      //  << std::endl;
 
       // Create an output tensor
       Tensor* output_tensor = NULL;
