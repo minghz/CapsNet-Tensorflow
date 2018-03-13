@@ -31,9 +31,10 @@ class FixResolutionOp : public OpKernel {
       //std::cout << "m0: " << m(0) << std::endl;
       //std::cout << "n0: " << n(0) << std::endl;
      
-      float range_min = -1 * pow(2, (m(0) - 1));
-      float range_max = pow(2, (m(0) - 1)) - pow(2, -1 * n(0));
+      float range = pow(2, (m(0) - 1));
       float resolution = pow(2, -1 * n(0));
+      float range_min = -1 * range;
+      float range_max = range - resolution;
 
       //std::cout << "range: [" << range_min << ", " << range_max << "]"
       //  << " | resolution: " << resolution
