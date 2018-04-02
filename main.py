@@ -76,7 +76,9 @@ def train(model, supervisor, num_label):
                     for i in range(num_val_batch):
                         start = i * cfg.batch_size
                         end = start + cfg.batch_size
-                        acc = sess.run(model.accuracy, {model.X: valX[start:end], model.labels: valY[start:end]})
+                        acc = sess.run(model.accuracy,
+                                {model.X: valX.eval(session=sess)[start:end],
+                                 model.labels: valY.eval(session=sess)[start:end]})
                         val_acc += acc
                     val_acc = val_acc / (cfg.batch_size * num_val_batch)
                     fd_val_acc.write(str(global_step) + ',' + str(val_acc) + '\n')

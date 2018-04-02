@@ -65,6 +65,7 @@ class CapsNet(object):
             #                                  padding='VALID')
             conv1 = libs.conv_layer(self.X, in_channels=self.X.shape[-1].value,
                         num_outputs=256, kernel_size=9, stride=1, padding='VALID')
+            print(conv1.shape)
             assert conv1.get_shape() == [cfg.batch_size, 20, 20, 256]
 
         # Primary Capsules layer, return [batch_size, 1152, 8, 1]
