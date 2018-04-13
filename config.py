@@ -26,7 +26,7 @@ flags.DEFINE_float('regularization_scale', 0.392, 'regularization coefficient fo
 #   environment setting    #
 ############################
 flags.DEFINE_string('dataset', 'cifar10', 'The name of dataset [mnist, fashion-mnist, cifar10]')
-flags.DEFINE_boolean('is_training', True, 'train or predict phase')
+flags.DEFINE_boolean('is_training', False, 'train or predict phase')
 flags.DEFINE_boolean('is_fixed', False, 'Fix variables to predetermined resolution')
 flags.DEFINE_integer('fixed_rough_range_bits', 6, 'Fixed-point bits for ranges for large distributions')
 flags.DEFINE_integer('fixed_rough_precision_bits', 6, 'Fixed-point bits for precisions for large distributions')

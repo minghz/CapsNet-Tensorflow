@@ -1,3 +1,15 @@
+# This code assumes you have already downloaded the CIFAR10 binary, and
+# uncompressed it in the same directory this script lives in:
+#
+# data/cifar-10-batches-bin/
+# data/cifar-10-binary.tar.gz
+# 
+# It will generate another directory:
+#
+# data/cifar-10-preprocessed
+#
+# Where it will re-write the CIFAR10 input data into the same format as MNIST
+
 import os
 import numpy as np
 from matplotlib import pyplot as plt
@@ -11,6 +23,7 @@ def crop_center(img,cropx,cropy):
 def process_data(filename, dest_dir):
     fd = open(filename)
     loaded = np.fromfile(file=fd, dtype=np.uint8)
+    fd.close()
 
     lables = loaded[0::3073]
     loaded = np.delete(loaded, np.arange(0, 3073*10000, 3073))
