@@ -1,3 +1,11 @@
+# Changes:
+Allow training using redacted CIFAR10
+
+- cropped (center) from 32x32 to 28x28
+- greyscale
+
+Final accuracy with test data ~53%
+
 # CapsNet-Tensorflow
 
 [![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=plastic)](CONTRIBUTING.md)
